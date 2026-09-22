@@ -118,9 +118,9 @@ Plugin options: `url`, `key` (prefer the credential store or env var), and `upst
 limiting which of `anthropic`, `openai`, `gemini`, `openrouter` get listed. Pass
 `"upstreams": ["anthropic", "openai", "gemini"]` if 170 OpenRouter entries clutter your picker.
 
-To update later: `git pull` in the clone, then restart OpenCode's background service
-(`opencode service stop`, or kill the `opencode serve --service` process). The path must point at
-the `plugin` directory itself, not at a file inside it.
+To update later: `git pull` in the clone, then `opencode service restart` so the background
+service reloads the plugin. The path must point at the `plugin` directory itself, not at a file
+inside it.
 
 ### Without the plugin
 
@@ -216,7 +216,7 @@ npm run plugin:build                       # rebuilds plugin/dist/index.js (comm
 netlify deploy --prod --no-build --dir public --site <site-id>
 ```
 
-Restart OpenCode's background service after rebuilding the plugin so it picks up the new code.
+Run `opencode service restart` after rebuilding the plugin so the background service picks up the new code.
 
 ## License
 

@@ -12,7 +12,7 @@ Options: `url`, `key` (prefer the credential store or `NETLIFY_AI_RELAY_KEY`), `
 (subset of `anthropic`, `openai`, `gemini`, `openrouter`).
 
 Layout: `src/index.ts` is the source, `dist/index.js` the committed build that OpenCode loads
-through `index.js`. Rebuild with `npm run build` here, then restart OpenCode's background service.
+through `index.js`. Rebuild with `npm run build` here, then `opencode service restart`.
 
 Notes:
 - Cost shows as zero in OpenCode because usage is billed in Netlify credits on your team.
