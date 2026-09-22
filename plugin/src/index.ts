@@ -24,12 +24,14 @@ const PROVIDER_ID = "netlify-ai";
 const ENV_URL = "NETLIFY_AI_RELAY_URL";
 const ENV_KEY = "NETLIFY_AI_RELAY_KEY";
 
-type Upstream = "anthropic" | "openai" | "gemini";
+type Upstream = "anthropic" | "openai" | "gemini" | "openrouter";
 
 const ADAPTERS: Record<Upstream, { npm: string; path: string }> = {
   anthropic: { npm: "@ai-sdk/anthropic", path: "/anthropic/v1" },
   openai: { npm: "@ai-sdk/openai", path: "/openai/v1" },
   gemini: { npm: "@ai-sdk/google", path: "/gemini/v1beta" },
+  // OpenRouter-routed ids are accepted on the OpenAI chat-completions route.
+  openrouter: { npm: "@ai-sdk/openai-compatible", path: "/openai/v1" },
 };
 
 type RelayModel = {
@@ -48,7 +50,7 @@ type PluginOptions = {
   url?: string;
   /** Relay key. Prefer `opencode auth login` or NETLIFY_AI_RELAY_KEY over putting it here. */
   key?: string;
-  /** Only list these upstreams. Default: all three. */
+  /** Only list these upstreams. Default: all four (anthropic, openai, gemini, openrouter). */
   upstreams?: Upstream[];
 };
 
@@ -61,6 +63,7 @@ const FALLBACK_MODELS: RelayModel[] = [
   { id: "gpt-5", provider: "openai", name: "gpt-5", context: 200_000, output: 32_768, reasoning: true, toolcall: true, attachment: true },
   { id: "gpt-5-mini", provider: "openai", name: "gpt-5-mini", context: 200_000, output: 32_768, reasoning: true, toolcall: true, attachment: true },
   { id: "gemini-2.5-pro", provider: "gemini", name: "Gemini 2.5 Pro", context: 200_000, output: 65_536, reasoning: true, toolcall: true, attachment: true },
+  { id: "deepseek/deepseek-v4-flash", provider: "openrouter", name: "deepseek/deepseek-v4-flash", context: 200_000, output: 16_384, reasoning: true, toolcall: true, attachment: false },
 ];
 
 const trimSlash = (u: string) => u.trim().replace(/\/+$/, "");
@@ -110,7 +113,7 @@ export const NetlifyAIGatewayPlugin: Plugin = async (_input, options): Promise<H
   const opts = (options ?? {}) as PluginOptions;
   const url = opts.url ? trimSlash(opts.url) : process.env[ENV_URL] ? trimSlash(process.env[ENV_URL]!) : undefined;
   const explicitKey = opts.key || process.env[ENV_KEY];
-  const upstreams = new Set<Upstream>(opts.upstreams ?? ["anthropic", "openai", "gemini"]);
+  const upstreams = new Set<Upstream>(opts.upstreams ?? ["anthropic", "openai", "gemini", "openrouter"]);
 
   return {
     auth: {

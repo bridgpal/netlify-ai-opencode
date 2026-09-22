@@ -28,7 +28,8 @@ export NETLIFY_AI_RELAY_KEY=...
 ```
 
 Models appear under the `netlify-ai` provider, for example `netlify-ai/claude-fable-5-1`, and
-cover Anthropic, OpenAI and Gemini in one list fetched from the relay's `/models` at startup.
+cover Anthropic, OpenAI, Gemini and OpenRouter-routed models (about 290) in one list fetched from
+the relay's `/models` at startup. OpenRouter ids keep their slash: `netlify-ai/qwen/qwen3-coder`.
 
 ## Options
 
@@ -36,7 +37,7 @@ cover Anthropic, OpenAI and Gemini in one list fetched from the relay's `/models
 | --- | --- |
 | `url` | Relay base URL. Can also come from `NETLIFY_AI_RELAY_URL`. |
 | `key` | Relay key. Prefer the auth store or `NETLIFY_AI_RELAY_KEY`. |
-| `upstreams` | Array limiting which of `anthropic`, `openai`, `gemini` are listed. |
+| `upstreams` | Array limiting which of `anthropic`, `openai`, `gemini`, `openrouter` are listed. |
 
 ## Notes
 

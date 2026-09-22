@@ -22,7 +22,7 @@ Netlify to call on its behalf. That something is this relay.
 | Edge Functions get the vars | Yes, same as Functions | The relay is an Edge Function: no CPU-heavy work, streams for as long as the model talks |
 | Routes | `/v1/messages` Anthropic, `/v1/chat/completions` and `/v1/responses` OpenAI (and OpenRouter ids), `/v1beta/models/...` Gemini, `/chat/completions` OpenRouter SDK | Path-transparent proxying works with the stock SDKs |
 | Content type | Any request without `content-type: application/json` gets a 400, including GETs | Relay sets it when the client did not |
-| Model lists | `GET /v1/models` returns the OpenAI catalog only; `GET /v1beta/models` returns Gemini; there is no Anthropic list | `/models` on the relay fetches those two live and takes Anthropic ids from the published table |
+| Model lists | `GET /v1/models` returns the OpenAI catalog only; `GET /v1beta/models` returns Gemini; no list for Anthropic or OpenRouter-routed models | `/models` fetches those two live and parses Anthropic and OpenRouter ids out of the published docs table (`overview.md`), cached 1 h, 1 min on failure |
 | Streaming | SSE arrives in roughly 4 KB blocks, not per token (9 KB in 3 chunks, 23 KB in 6, measured from inside the edge function) | Output appears in bursts in OpenCode; the relay does not buffer, the gateway does |
 | Time to first byte | 1.3 to 5 s for short prompts on Haiku | Expected; nothing to tune in the relay |
 | Headers | Request headers are not forwarded to the provider | `anthropic-beta` features silently do not apply |
@@ -74,6 +74,7 @@ the models itself from the `config` hook, fetching the list from the relay's `/m
 when a key is known (plugin option, `NETLIFY_AI_RELAY_KEY`, or the entry `opencode auth login`
 saved in `auth.json`). Each declared model sets `provider.npm` and `provider.api`, which is how one
 provider can mix `@ai-sdk/anthropic`, `@ai-sdk/openai` and `@ai-sdk/google` models pointing at
-different relay prefixes.
+different relay prefixes. OpenRouter-routed ids use `@ai-sdk/openai-compatible` against the
+`/openai/v1` prefix, which the gateway accepts for those ids (verified with `qwen/qwen3-coder`).
 
 A plugin module must export only functions; OpenCode calls every export and throws on anything else.

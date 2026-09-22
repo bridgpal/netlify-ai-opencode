@@ -2,7 +2,8 @@
 
 Use Netlify's [AI Gateway](https://docs.netlify.com/build/ai-gateway/overview/) as the model
 backend for [OpenCode](https://opencode.ai), or for any tool that speaks the Anthropic, OpenAI or
-Gemini API. One Netlify site, one key you control, no provider accounts.
+Gemini API. Claude, GPT, Gemini and about 170 OpenRouter-routed models (DeepSeek, Qwen, Kimi, GLM,
+Grok, Llama, Mistral) behind one Netlify site and one key you control. No provider accounts.
 
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/bridgpal/netlify-ai-opencode)
 
@@ -96,13 +97,15 @@ opencode models netlify-ai            # lists every model the relay offers
 opencode run -m netlify-ai/claude-sonnet-5 "hello"
 ```
 
-The provider is called `netlify-ai`. Anthropic, OpenAI and Gemini models all appear under it, each
-wired to the right SDK adapter and relay path, so one key covers everything. The list is fetched
+The provider is called `netlify-ai`. Anthropic, OpenAI, Gemini and OpenRouter-routed models all
+appear under it (about 290 today), each wired to the right SDK adapter and relay path, so one key
+covers everything. OpenRouter ids keep their slash, for example `netlify-ai/qwen/qwen3-coder`. The list is fetched
 from the relay's `/models` at startup and falls back to a small built-in list if the relay is
 unreachable. The relay URL can also come from `NETLIFY_AI_RELAY_URL` instead of the plugin option.
 
 Plugin options: `url`, `key` (prefer the auth store or env var), and `upstreams`, an array
-limiting which of `anthropic`, `openai`, `gemini` get listed.
+limiting which of `anthropic`, `openai`, `gemini`, `openrouter` get listed. Pass
+`"upstreams": ["anthropic", "openai", "gemini"]` if 170 OpenRouter entries clutter your picker.
 
 ### Without the plugin
 
@@ -122,7 +125,7 @@ curl https://YOUR-SITE.netlify.app/anthropic/v1/messages \
   -H "x-api-key: $RELAY_KEY" -H "anthropic-version: 2023-06-01" -H "content-type: application/json" \
   -d '{"model":"claude-haiku-4-5","max_tokens":50,"messages":[{"role":"user","content":"hi"}]}'
 
-# OpenAI (Responses or Chat Completions; OpenRouter model ids work here too)
+# OpenAI (Responses or Chat Completions; OpenRouter model ids such as deepseek/deepseek-v4-flash work here too)
 curl https://YOUR-SITE.netlify.app/openai/v1/responses \
   -H "Authorization: Bearer $RELAY_KEY" -H "content-type: application/json" \
   -d '{"model":"gpt-5-mini","input":"hi"}'
@@ -145,7 +148,8 @@ All settings are environment variables on the Netlify site. Redeploy after chang
 | `RELAY_MODELS_ALLOW` | no | Comma-separated globs such as `claude-*,gpt-5*`. Requests for other models get a 403 and `/models` hides them. |
 | `RELAY_DAILY_TOKEN_BUDGET` | no | Max input plus output tokens per key per UTC day. Over budget returns 429 until midnight UTC. |
 | `RELAY_LEDGER` | no | `false` disables the usage ledger entirely (no Blobs reads or writes). Default on. |
-| `RELAY_ANTHROPIC_MODELS` | no | Override the Anthropic ids that `/models` advertises (the gateway has no list endpoint for Anthropic). |
+| `RELAY_ANTHROPIC_MODELS` | no | Override the Anthropic ids that `/models` advertises. |
+| `RELAY_OPENROUTER` | no | `false` hides OpenRouter-routed models from `/models` (they stay callable). Default on. |
 
 Do not set `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` or `OPENROUTER_API_KEY` on
 this site. Netlify only injects gateway credentials when you have not set your own.
@@ -165,7 +169,7 @@ this site. Netlify only injects gateway credentials when you have not set your o
 - **Streaming arrives in bursts.** The gateway flushes server-sent events in roughly 4 KB blocks rather than per token, so OpenCode shows output in chunks. The relay itself does not buffer.
 - **Cost shows as zero in OpenCode.** Spend is billed in Netlify credits; check your team's usage page.
 - **Beta headers are dropped.** The gateway does not forward request headers such as `anthropic-beta`, so header-gated experimental features silently do nothing.
-- **Anthropic model ids are a curated list.** OpenAI and Gemini ids are fetched live from the gateway; there is no Anthropic list endpoint, so `/models` uses the published table (override with `RELAY_ANTHROPIC_MODELS`).
+- **Anthropic and OpenRouter ids come from Netlify's published model table.** OpenAI and Gemini ids are fetched live from the gateway, which has no list endpoint for the other two, so `/models` reads the [model availability table](https://docs.netlify.com/build/ai-gateway/overview/#model-availability) and caches it for an hour, with a built-in Anthropic fallback.
 - **The ledger is approximate.** Rows are written after each response finishes; concurrent requests can race. Netlify's usage page is the billing truth.
 
 ## Repo layout
