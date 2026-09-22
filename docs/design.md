@@ -66,15 +66,36 @@ usage page remains the billing source of truth.
 - Netlify rate limiting rules on the relay paths are recommended where the plan includes them.
 - The relay adds `X-Robots-Tag: noindex` and a no-referrer policy; the landing page carries no secrets.
 
-## OpenCode integration
+## OpenCode integration (v2)
 
-OpenCode's plugin `provider.models` hook only runs for providers that already exist in its
-models.dev database. A custom provider id such as `netlify-ai` is not there, so the plugin declares
-the models itself from the `config` hook, fetching the list from the relay's `/models` endpoint
-when a key is known (plugin option, `NETLIFY_AI_RELAY_KEY`, or the entry `opencode auth login`
-saved in `auth.json`). Each declared model sets `provider.npm` and `provider.api`, which is how one
-provider can mix `@ai-sdk/anthropic`, `@ai-sdk/openai` and `@ai-sdk/google` models pointing at
-different relay prefixes. OpenRouter-routed ids use `@ai-sdk/openai-compatible` against the
-`/openai/v1` prefix, which the gateway accepts for those ids (verified with `qwen/qwen3-coder`).
+OpenCode 2.x runs a shared background service (`opencode serve --service`) that loads plugins; the
+CLI and TUI are clients of it. Restart that service after changing plugin code.
 
-A plugin module must export only functions; OpenCode calls every export and throws on anything else.
+The plugin is a module with a default export `{ id, setup }` (the v2 promise API; `Plugin.define`
+from `@opencode/plugin` is an identity function, so the plugin ships without that dependency). In
+`setup` it:
+
+1. registers an integration `netlify-ai` with a `key` method (`opencode auth login netlify-ai`) and an
+   `env` method (`NETLIFY_AI_RELAY_KEY`), via `ctx.integration.transform`;
+2. resolves the connected key (`ctx.integration.connection.active` and `resolve`) or takes it from the
+   plugin option or env, and fetches the relay's `/models`;
+3. adds a provider `netlify-ai` with `activation: "auto"` and `integrationID: "netlify-ai"`, via
+   `ctx.provider.transform(editor => editor.add({ info, models }))`. OpenCode injects the connected
+   key as `apiKey` at request time, so the plugin never handles credentials for requests.
+
+Each model carries `package` and `settings.baseURL`. Packages must use the `aisdk:` prefix
+(`aisdk:@ai-sdk/anthropic`, `aisdk:@ai-sdk/openai`, `aisdk:@ai-sdk/google`,
+`aisdk:@ai-sdk/openai-compatible`); a bare name is treated as a native `@opencode/ai` module and
+fails with "does not export model(modelID, settings)".
+
+Config facts learned the hard way: the plugin entry must be the tuple form `["pkg", { options }]`
+(the object form `{ "package", "options" }` is what the normalized config looks like internally and
+is rejected in user config); a local plugin path must be a directory containing `index.js` or
+`server.js`; `file://` specs are treated as npm targets.
+
+Plugins do not run for `opencode models` until the service has finished loading, so an immediate
+count of zero right after a restart is a race, not a failure.
+
+OpenCode 1.x used a different plugin API (named function exports with `config`/`auth` hooks and a
+`provider.models` hook that only fired for models.dev providers). That version of the plugin was
+replaced; 1.x users can use `scripts/opencode-provider.mjs` to generate a provider block instead.

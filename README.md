@@ -69,8 +69,8 @@ Mark `RELAY_KEYS` as a secret in the Netlify UI if you set it there, and set it 
 
 ## 2. Use it from OpenCode
 
-Add the plugin to `~/.config/opencode/opencode.json` (or a project `opencode.json`), pointing it at
-your relay:
+Requires OpenCode v2 (`opencode --version` prints `2.x`). Add the plugin to
+`~/.config/opencode/opencode.json` (or a project `opencode.json`), pointing it at your relay:
 
 ```json
 {
@@ -79,14 +79,14 @@ your relay:
 }
 ```
 
-Give OpenCode the key, either through its auth store:
+Give OpenCode the key, either through its credential store:
 
 ```
-opencode auth login
-# choose "Other", enter provider id: netlify-ai, paste the secret part of your relay key
+opencode auth login netlify-ai
+# paste the secret part of your relay key
 ```
 
-or through the environment:
+or through the environment of the shell that starts OpenCode:
 
 ```
 export NETLIFY_AI_RELAY_KEY=<secret part of your relay key>
@@ -95,25 +95,33 @@ export NETLIFY_AI_RELAY_KEY=<secret part of your relay key>
 Then:
 
 ```
-opencode models netlify-ai            # lists every model the relay offers
+opencode models | grep netlify-ai      # every model the relay offers
 opencode run -m netlify-ai/claude-sonnet-5 "hello"
 ```
 
 The provider is called `netlify-ai`. Anthropic, OpenAI, Gemini and OpenRouter-routed models all
-appear under it (about 290 today), each wired to the right SDK adapter and relay path, so one key
-covers everything. OpenRouter ids keep their slash, for example `netlify-ai/qwen/qwen3-coder`. The list is fetched
-from the relay's `/models` at startup and falls back to a small built-in list if the relay is
-unreachable. The relay URL can also come from `NETLIFY_AI_RELAY_URL` instead of the plugin option.
+appear under it (about 290 today), each wired to the right AI SDK package and relay path, so one
+key covers everything. OpenRouter ids keep their slash, for example `netlify-ai/qwen/qwen3-coder`.
+The list is fetched from the relay's `/models` when the plugin loads and falls back to a small
+built-in list if no key is known yet. After connecting a key, run `opencode reload` (or restart)
+so the full list is fetched. The relay URL can also come from `NETLIFY_AI_RELAY_URL`.
 
-Plugin options: `url`, `key` (prefer the auth store or env var), and `upstreams`, an array
+Plugin options: `url`, `key` (prefer the credential store or env var), and `upstreams`, an array
 limiting which of `anthropic`, `openai`, `gemini`, `openrouter` get listed. Pass
 `"upstreams": ["anthropic", "openai", "gemini"]` if 170 OpenRouter entries clutter your picker.
 
 ### Without the plugin
 
-You can also declare providers by hand. `examples/opencode.manual.json` shows three provider
-blocks (`@ai-sdk/anthropic`, `@ai-sdk/openai`, `@ai-sdk/google`) whose `baseURL` points at the
-relay prefixes and whose `apiKey` reads `NETLIFY_AI_RELAY_KEY`.
+Generate a plain `provider` block from your relay and paste it into `opencode.json`:
+
+```
+node scripts/opencode-provider.mjs https://YOUR-SITE.netlify.app <relay-key> > provider.json
+node scripts/opencode-provider.mjs https://YOUR-SITE.netlify.app <relay-key> --key-env NETLIFY_AI_RELAY_KEY   # reference an env var instead of embedding the key
+```
+
+It writes one `netlify-ai` provider whose models each carry their own `provider.npm` and
+`provider.api`. Re-run it when the model list changes. `examples/opencode.manual.json` shows a
+hand-written three-provider variant.
 
 ## 3. Use it from anything else
 
@@ -181,7 +189,8 @@ netlify/edge-functions/relay.ts    the proxy (auth, allowlist, budget, streaming
 netlify/edge-functions/models.ts   GET /models
 netlify/edge-functions/whoami.ts   GET /whoami
 netlify/lib/                       auth, providers, usage parsing, ledger (Netlify Blobs)
-plugin/                            opencode-netlify-ai (TypeScript, builds to plugin/dist)
+plugin/                            opencode-netlify-ai for OpenCode v2 (TypeScript, builds to plugin/dist)
+scripts/opencode-provider.mjs      prints a plain provider block from the relay's /models (no-plugin path)
 examples/                          opencode.json snippets, with and without the plugin
 docs/design.md                     verified gateway behavior and design decisions
 scripts/gen-key.sh                 prints a label:secret pair
@@ -195,11 +204,15 @@ npm run plugin:build                       # plugin/dist/index.js
 netlify deploy --prod --no-build --dir public --site <site-id>
 ```
 
-To test the plugin from a local build before publishing, reference the file directly:
+To test the plugin from a local build before publishing, point OpenCode at the plugin directory
+(it must be a directory; OpenCode loads its `index.js`):
 
 ```json
-"plugin": [["file:///absolute/path/to/plugin/dist/index.js", { "url": "https://YOUR-SITE.netlify.app" }]]
+"plugin": [["/absolute/path/to/netlify-ai-opencode/plugin", { "url": "https://YOUR-SITE.netlify.app" }]]
 ```
+
+Restart the background service after changing plugin code: `opencode service stop` or kill the
+`opencode serve --service` process, then run any command.
 
 ## License
 

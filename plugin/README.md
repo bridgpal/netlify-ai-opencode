@@ -1,7 +1,8 @@
 # opencode-netlify-ai
 
-OpenCode provider plugin for Netlify's AI Gateway. It talks to a relay you deploy from
+OpenCode v2 provider plugin for Netlify's AI Gateway. It talks to a relay you deploy from
 [netlify-ai-opencode](https://github.com/bridgpal/netlify-ai-opencode); deploy that first.
+Requires OpenCode 2.x. For OpenCode 1.x use the generated provider block described in the main README.
 
 ## Install
 
@@ -14,11 +15,11 @@ In `~/.config/opencode/opencode.json` (or a project `opencode.json`):
 }
 ```
 
-Give OpenCode your relay key, either through its auth store:
+Give OpenCode your relay key, either through its credential store:
 
 ```
-opencode auth login
-# choose "Other", provider id: netlify-ai, paste the secret part of the relay key
+opencode auth login netlify-ai
+# paste the secret part of the relay key
 ```
 
 or through the environment:
@@ -43,4 +44,5 @@ the relay's `/models` at startup. OpenRouter ids keep their slash: `netlify-ai/q
 
 - Cost shows as zero in OpenCode because usage is billed in Netlify credits on your team.
 - The gateway caps input at 200k tokens, flushes streams in roughly 4 KB blocks, and does not forward beta headers.
-- If the relay cannot be reached at startup a small built-in model list is used instead.
+- If the relay cannot be reached at startup, or no key is connected yet, a small built-in model list is used. Run `opencode reload` after connecting a key.
+- The module has no runtime dependency on `@opencode/plugin`; it exports the `{ id, setup }` shape OpenCode v2 expects.
