@@ -69,7 +69,8 @@ usage page remains the billing source of truth.
 ## OpenCode integration (v2)
 
 OpenCode 2.x runs a shared background service (`opencode serve --service`) that loads plugins; the
-CLI and TUI are clients of it. Restart that service after changing plugin code.
+CLI and TUI are clients of it. Run `opencode service restart` after changing plugin code; `opencode reload`
+also re-runs plugin loading.
 
 The plugin is a module with a default export `{ id, setup }` (the v2 promise API; `Plugin.define`
 from `@opencode/plugin` is an identity function, so the plugin ships without that dependency). It is
