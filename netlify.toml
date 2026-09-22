@@ -1,0 +1,17 @@
+[build]
+  publish = "public"
+  # Nothing to compile: Netlify bundles the edge functions itself. npm install still
+  # runs so @netlify/blobs is available to the ledger.
+  command = "echo 'no build step'"
+
+# Prompts shown by the Deploy to Netlify button.
+[template.environment]
+  RELAY_KEYS = "Keys clients must present, comma-separated, as name:secret. Generate a secret with: openssl rand -hex 32"
+  RELAY_MODELS_ALLOW = "Optional. Comma-separated model globs that may be used, e.g. claude-*,gpt-5*. Empty allows every model."
+  RELAY_DAILY_TOKEN_BUDGET = "Optional. Max tokens (input + output) each key may use per UTC day, e.g. 2000000. Empty means no cap."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+    Referrer-Policy = "no-referrer"

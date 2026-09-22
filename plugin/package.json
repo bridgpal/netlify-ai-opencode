@@ -1,0 +1,45 @@
+{
+  "name": "opencode-netlify-ai",
+  "version": "0.1.0",
+  "description": "OpenCode provider plugin for Netlify's AI Gateway, via a netlify-ai-opencode relay",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "netlify",
+    "ai-gateway",
+    "anthropic",
+    "openai",
+    "gemini"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bridgpal/netlify-ai-opencode",
+    "directory": "plugin"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.17.0"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.18.32",
+    "@types/node": "^26.6.2",
+    "typescript": "^5.6.0"
+  }
+}
