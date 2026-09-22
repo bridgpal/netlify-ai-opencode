@@ -72,7 +72,8 @@ OpenCode 2.x runs a shared background service (`opencode serve --service`) that 
 CLI and TUI are clients of it. Restart that service after changing plugin code.
 
 The plugin is a module with a default export `{ id, setup }` (the v2 promise API; `Plugin.define`
-from `@opencode/plugin` is an identity function, so the plugin ships without that dependency). In
+from `@opencode/plugin` is an identity function, so the plugin ships without that dependency). It is
+loaded from the cloned repo's `plugin` directory, never from npm; `dist/` is committed so a clone needs no build. In
 `setup` it:
 
 1. registers an integration `netlify-ai` with a `key` method (`opencode auth login netlify-ai`) and an

@@ -1,6 +1,5 @@
 node_modules/
 .netlify/
-plugin/dist/
 .DS_Store
 *.log
 .env

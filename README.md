@@ -29,7 +29,7 @@ that you mint and can revoke.
 Two pieces live here:
 
 - `netlify/` the relay: `/anthropic/*`, `/openai/*`, `/gemini/*`, `/openrouter/*`, plus `/models` and `/whoami`.
-- `plugin/` the OpenCode plugin `opencode-netlify-ai`, which registers a `netlify-ai` provider listing every model the relay offers.
+- `plugin/` an OpenCode v2 plugin, loaded locally from this clone (not published to npm), which registers a `netlify-ai` provider listing every model the relay offers.
 
 ## 1. Deploy the relay
 
@@ -69,13 +69,21 @@ Mark `RELAY_KEYS` as a secret in the Netlify UI if you set it there, and set it 
 
 ## 2. Use it from OpenCode
 
-Requires OpenCode v2 (`opencode --version` prints `2.x`). Add the plugin to
-`~/.config/opencode/opencode.json` (or a project `opencode.json`), pointing it at your relay:
+Requires OpenCode v2 (`opencode --version` prints `2.x`). The plugin is not on npm; OpenCode loads
+it from a directory on disk, so clone this repo somewhere permanent. The built plugin is committed,
+so there is nothing to install or compile.
+
+```
+git clone https://github.com/bridgpal/netlify-ai-opencode ~/netlify-ai-opencode
+```
+
+Then add it to `~/.config/opencode/opencode.json` (or a project `opencode.json`), using the
+absolute path of the `plugin` directory and your relay URL:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": [["opencode-netlify-ai", { "url": "https://YOUR-SITE.netlify.app" }]]
+  "plugin": [["/Users/you/netlify-ai-opencode/plugin", { "url": "https://YOUR-SITE.netlify.app" }]]
 }
 ```
 
@@ -109,6 +117,10 @@ so the full list is fetched. The relay URL can also come from `NETLIFY_AI_RELAY_
 Plugin options: `url`, `key` (prefer the credential store or env var), and `upstreams`, an array
 limiting which of `anthropic`, `openai`, `gemini`, `openrouter` get listed. Pass
 `"upstreams": ["anthropic", "openai", "gemini"]` if 170 OpenRouter entries clutter your picker.
+
+To update later: `git pull` in the clone, then restart OpenCode's background service
+(`opencode service stop`, or kill the `opencode serve --service` process). The path must point at
+the `plugin` directory itself, not at a file inside it.
 
 ### Without the plugin
 
@@ -189,7 +201,7 @@ netlify/edge-functions/relay.ts    the proxy (auth, allowlist, budget, streaming
 netlify/edge-functions/models.ts   GET /models
 netlify/edge-functions/whoami.ts   GET /whoami
 netlify/lib/                       auth, providers, usage parsing, ledger (Netlify Blobs)
-plugin/                            opencode-netlify-ai for OpenCode v2 (TypeScript, builds to plugin/dist)
+plugin/                            OpenCode v2 plugin, loaded locally; dist/ is committed so a clone is enough
 scripts/opencode-provider.mjs      prints a plain provider block from the relay's /models (no-plugin path)
 examples/                          opencode.json snippets, with and without the plugin
 docs/design.md                     verified gateway behavior and design decisions
@@ -200,19 +212,11 @@ scripts/gen-key.sh                 prints a label:secret pair
 
 ```
 npm install && npm --prefix plugin install
-npm run plugin:build                       # plugin/dist/index.js
+npm run plugin:build                       # rebuilds plugin/dist/index.js (commit it)
 netlify deploy --prod --no-build --dir public --site <site-id>
 ```
 
-To test the plugin from a local build before publishing, point OpenCode at the plugin directory
-(it must be a directory; OpenCode loads its `index.js`):
-
-```json
-"plugin": [["/absolute/path/to/netlify-ai-opencode/plugin", { "url": "https://YOUR-SITE.netlify.app" }]]
-```
-
-Restart the background service after changing plugin code: `opencode service stop` or kill the
-`opencode serve --service` process, then run any command.
+Restart OpenCode's background service after rebuilding the plugin so it picks up the new code.
 
 ## License
 
