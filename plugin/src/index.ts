@@ -12,9 +12,11 @@
  * Key: `opencode auth login` -> Netlify AI Gateway -> paste the relay key, or set
  * NETLIFY_AI_RELAY_KEY. The URL may also come from NETLIFY_AI_RELAY_URL.
  *
- * This module deliberately has no runtime dependency on @opencode/plugin: OpenCode
- * only needs a default export shaped { id, setup }.
+ * This module has no runtime dependency on @opencode/plugin (types only): OpenCode
+ * needs a default export shaped { id, setup }, which is what Plugin.define returns.
  */
+
+import type { Model, Plugin, Provider } from "@opencode/plugin";
 
 const PROVIDER_ID = "netlify-ai";
 const ENV_URL = "NETLIFY_AI_RELAY_URL";
@@ -64,50 +66,10 @@ const FALLBACK_MODELS: RelayModel[] = [
   { id: "deepseek/deepseek-v4-flash", provider: "openrouter", name: "deepseek/deepseek-v4-flash", context: GATEWAY_CONTEXT_CAP, output: 16_384, reasoning: true, toolcall: true, attachment: false },
 ];
 
-// Minimal structural types for the parts of the OpenCode v2 plugin context this plugin uses.
-type Registration = { dispose: () => Promise<void> };
-type Credential = { type: "key"; key: string } | { type: "oauth"; access: string } | undefined;
-type Connection = { type: "credential"; id: string } | { type: "env"; name: string } | undefined;
-type ProviderInfo = {
-  id: string;
-  name: string;
-  activation: "auto" | "enabled" | "disabled";
-  package: string;
-  integrationID?: string;
-  settings?: Record<string, unknown>;
-};
-type ModelInfo = {
-  id: string;
-  modelID: string;
-  providerID: string;
-  name: string;
-  package?: string;
-  settings?: Record<string, unknown>;
-  capabilities: { tools: boolean; input: string[]; output: string[] };
-  variants: unknown[];
-  time: { released: number };
-  cost: unknown[];
-  status: "active";
-  enabled: boolean;
-  limit: { context: number; output: number };
-};
-type IntegrationMethod = { type: "key"; label?: string } | { type: "env"; names: string[] };
-type Context = {
-  options?: Record<string, unknown>;
-  integration: {
-    transform(fn: (editor: {
-      update(id: string, fn: (i: { id: string; name: string }) => void): void;
-      method: { update(input: { integrationID: string; method: IntegrationMethod }): void };
-    }) => void): Promise<Registration>;
-    connection: {
-      active(integrationID: string): Promise<Connection>;
-      resolve(connection: NonNullable<Connection>): Promise<Credential>;
-    };
-  };
-  provider: {
-    transform(fn: (editor: { add(input: { info: ProviderInfo; models: ModelInfo[] }): void }) => void): Promise<Registration>;
-  };
-};
+// Types come from the official SDK as a type-only dev dependency; nothing from it is imported at runtime.
+type Context = Plugin.Context;
+type ProviderInfo = Provider.Info;
+type ModelInfo = Model.Info;
 
 const trimSlash = (u: string) => u.trim().replace(/\/+$/, "");
 
@@ -122,9 +84,9 @@ async function fetchModels(url: string, key: string): Promise<RelayModel[]> {
 function toModel(url: string, m: RelayModel): ModelInfo {
   const adapter = ADAPTERS[m.provider];
   return {
-    id: m.id,
-    modelID: m.id,
-    providerID: PROVIDER_ID,
+    id: m.id as Model.ID,
+    modelID: m.id as Model.ID,
+    providerID: PROVIDER_ID as Provider.ID,
     name: `${m.name} (${m.provider})`,
     package: adapter.package,
     settings: { baseURL: `${url}${adapter.path}` },
@@ -154,7 +116,7 @@ async function storedKey(ctx: Context): Promise<string | undefined> {
   }
 }
 
-export default {
+const plugin: Plugin.Plugin = {
   id: "opencode-netlify-ai",
   setup: async (ctx: Context) => {
     const opts = (ctx.options ?? {}) as PluginOptions;
@@ -186,19 +148,19 @@ export default {
     const models = list.filter((m) => upstreams.has(m.provider)).map((m) => toModel(url, m));
 
     await ctx.provider.transform((providers) => {
-      providers.add({
-        info: {
-          id: PROVIDER_ID,
-          name: "Netlify AI Gateway",
-          package: ADAPTERS.anthropic.package,
-          // With a key in the options the provider is always on; otherwise it activates
-          // once a relay key is connected (auth login) or NETLIFY_AI_RELAY_KEY is set.
-          ...(opts.key
-            ? { activation: "enabled" as const, settings: { apiKey: opts.key } }
-            : { activation: "auto" as const, integrationID: PROVIDER_ID }),
-        },
-        models,
-      });
+      const info: ProviderInfo = {
+        id: PROVIDER_ID as Provider.ID,
+        name: "Netlify AI Gateway",
+        package: ADAPTERS.anthropic.package,
+        // With a key in the options the provider is always on; otherwise it activates
+        // once a relay key is connected (auth login) or NETLIFY_AI_RELAY_KEY is set.
+        ...(opts.key
+          ? { activation: "enabled" as const, settings: { apiKey: opts.key } }
+          : { activation: "auto" as const, integrationID: PROVIDER_ID as ProviderInfo["integrationID"] }),
+      };
+      providers.add({ info, models });
     });
   },
 };
+
+export default plugin;

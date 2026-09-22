@@ -12,8 +12,8 @@
  * Key: `opencode auth login` -> Netlify AI Gateway -> paste the relay key, or set
  * NETLIFY_AI_RELAY_KEY. The URL may also come from NETLIFY_AI_RELAY_URL.
  *
- * This module deliberately has no runtime dependency on @opencode/plugin: OpenCode
- * only needs a default export shaped { id, setup }.
+ * This module has no runtime dependency on @opencode/plugin (types only): OpenCode
+ * needs a default export shaped { id, setup }, which is what Plugin.define returns.
  */
 const PROVIDER_ID = "netlify-ai";
 const ENV_URL = "NETLIFY_AI_RELAY_URL";
@@ -83,7 +83,7 @@ async function storedKey(ctx) {
         return undefined;
     }
 }
-export default {
+const plugin = {
     id: "opencode-netlify-ai",
     setup: async (ctx) => {
         const opts = (ctx.options ?? {});
@@ -112,19 +112,18 @@ export default {
         }
         const models = list.filter((m) => upstreams.has(m.provider)).map((m) => toModel(url, m));
         await ctx.provider.transform((providers) => {
-            providers.add({
-                info: {
-                    id: PROVIDER_ID,
-                    name: "Netlify AI Gateway",
-                    package: ADAPTERS.anthropic.package,
-                    // With a key in the options the provider is always on; otherwise it activates
-                    // once a relay key is connected (auth login) or NETLIFY_AI_RELAY_KEY is set.
-                    ...(opts.key
-                        ? { activation: "enabled", settings: { apiKey: opts.key } }
-                        : { activation: "auto", integrationID: PROVIDER_ID }),
-                },
-                models,
-            });
+            const info = {
+                id: PROVIDER_ID,
+                name: "Netlify AI Gateway",
+                package: ADAPTERS.anthropic.package,
+                // With a key in the options the provider is always on; otherwise it activates
+                // once a relay key is connected (auth login) or NETLIFY_AI_RELAY_KEY is set.
+                ...(opts.key
+                    ? { activation: "enabled", settings: { apiKey: opts.key } }
+                    : { activation: "auto", integrationID: PROVIDER_ID }),
+            };
+            providers.add({ info, models });
         });
     },
 };
+export default plugin;

@@ -13,6 +13,8 @@ Options: `url`, `key` (prefer the credential store or `NETLIFY_AI_RELAY_KEY`), `
 
 Layout: `src/index.ts` is the source, `dist/index.js` the committed build that OpenCode loads
 through `index.js`. Rebuild with `npm run build` here, then `opencode service restart`.
+`npm run check` runs the plugin against a fake host and validates what it registers with the
+official `@opencode/schema` schemas (types come from `@opencode/plugin` as a dev dependency only).
 
 Notes:
 - Cost shows as zero in OpenCode because usage is billed in Netlify credits on your team.

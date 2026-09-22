@@ -73,7 +73,9 @@ CLI and TUI are clients of it. Run `opencode service restart` after changing plu
 also re-runs plugin loading.
 
 The plugin is a module with a default export `{ id, setup }` (the v2 promise API; `Plugin.define`
-from `@opencode/plugin` is an identity function, so the plugin ships without that dependency). It is
+from `@opencode/plugin` is an identity function, so the plugin ships without that runtime dependency;
+its types are used at build time and `plugin/check.mjs` validates the registered provider and models
+against `@opencode/schema`). It is
 loaded from the cloned repo's `plugin` directory, never from npm; `dist/` is committed so a clone needs no build. In
 `setup` it:
 
