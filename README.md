@@ -7,6 +7,8 @@ Grok, Llama, Mistral) behind one Netlify site and one key you control. No provid
 
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/bridgpal/netlify-ai-opencode)
 
+![OpenCode's model picker showing a Netlify AI Gateway provider with Claude, Gemini and other models](docs/opencode-model-picker.png)
+
 ## How it works
 
 The AI Gateway is only reachable from code running on Netlify. Functions and Edge Functions
